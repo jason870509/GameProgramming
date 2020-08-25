@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <style>
+    #info {
+      position: absolute;
+      top: 0px;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      color: #ff0000
+    }
+  </style>
+</head>
+
+<body>
+  <div id="info"> hw4-1</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+
+    class Rectangle {
+      constructor(mesh, width, height) {
+        this.pos = new THREE.Vector3()
+        //this.localPtOnPl = localPointOnPlane.clone();
+        //this.localNormal = localNormal.clone();
+        this.mesh = mesh;
+        this.width = width;
+        this.height = height;
+        this.max = new THREE.Vector3();
+        this.min = new THREE.Vector3();
+        scene.add(this.mesh);
+      }
+
+      update(angle) {
+
+        circle.mesh.updateMatrixWorld() // important!
+        let normalMat = new THREE.Matrix3().getNormalMatrix(this.mesh.matrixWorld);
+
+        this.xR = new THREE.Vector3(1, 0, 0).applyMatrix3(normalMat).normalize();
+        this.yR = new THREE.Vector3(0, 1, 0).applyMatrix3(normalMat).normalize();
+
+        this.max = new THREE.Vector3(this.width / 2, this.height / 2, 0);
+        this.min = new THREE.Vector3(-this.width / 2, -this.height / 2, 0);
+
+
+        this.collidingCircle();
+      }
+
+      collidingCircle() {
+        var max = new THREE.Vector3((this.max.clone().sub(circle.mesh.position.clone())).dot(this.xR.clone()), (this.max.clone().sub(circle.mesh.position.clone())).dot(this.yR.clone()), 0);
+        var min = new THREE.Vector3((this.min.clone().sub(circle.mesh.position.clone())).dot(this.xR.clone()), (this.min.clone().sub(circle.mesh.position.clone())).dot(this.yR.clone()), 0);
+
+        if (max.x < 0) {
+          if (max.y < 0) return (max.x * max.x + max.y * max.y < 10 * 10);
+          else if (min.y > 0) return (max.x * max.x + min.y * min.y < 10 * 10);
+          else return Math.abs(max.x) < 10;
+        } else if (min.x > 0) {
+          if (max.y < 0) return (min.x * min.x + max.y * max.y < 10 * 10);
+          else if (min.y > 0) return (min.x * min.x + min.y * min.y < 10 * 10);
+          else return min.x < 10;
+        } else {
+          if (max.y < 0) return Math.abs(max.y) < 10;
+          else if (min.y > 0) return min.y < 10
+          else return true;
+        }
+      }
+    }
+
+    class Circle {
+      constructor(mesh) {
+        this.mesh = mesh; // the graphics representation
+        scene.add(mesh)
+      }
+      update(angle) {
+        var k = 3;
+        var cos = Math.cos;
+        var sin = Math.sin;
+        var r = 100 * cos(k * angle);
+        var x = -100 * cos(k * angle) * sin(angle) - k * sin(k * angle) * cos(angle);
+        var y = -100 * cos(k * angle) * cos(angle) - k * sin(k * angle) * sin(angle);
+        this.mesh.position.set(r * cos(angle), 100 * cos(k * angle) * sin(angle), 0)
+      }
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    var camera, scene, renderer, light, controls;
+    var frame, circle, rectangles = [];
+
+    init();
+    animate();
+
+    function init() {
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x888888);
+
+
+      document.body.appendChild(renderer.domElement);
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+      camera.position.z = 500;
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+      ////////////////////////////////////////////////////////////
+
+
+      var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+      scene.add(gridXZ);
+      gridXZ.rotation.x = Math.PI / 2;
+      let circleMesh, radius = 10;
+      circleMesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 30), new THREE.MeshBasicMaterial({
+        color: 0xff00ff
+      }));
+      circle = new Circle(circleMesh);
+      circle.mesh.position.y = 100;
+
+      let mesh, rectangle;
+
+      mesh = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), new THREE.MeshBasicMaterial({
+        color: 0xff00ff,
+        wireframe: true,
+        wireframeLinewidth: 3
+      }));
+      rectangle = new Rectangle(mesh, 40, 30);
+      rectangles.push(rectangle)
+      rectangle.mesh.position.x = 0;
+      rectangle.mesh.position.y = 0;
+
+      /* mesh = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), new THREE.MeshBasicMaterial({
+         color: 0xff0000,
+         wireframe: true,
+         wireframeLinewidth: 3
+       }));
+       rectangle = new Rectangle(mesh, 40, 30);
+       rectangles.push(rectangle)
+       rectangle.mesh.position.x = 0;
+       rectangle.mesh.position.y = 50;
+     
+       mesh = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), new THREE.MeshBasicMaterial({
+         color: 0xff0000,
+         wireframe: true,
+         wireframeLinewidth: 3
+       }));
+       rectangle = new Rectangle(mesh, 40, 30);
+       rectangles.push(rectangle)
+       rectangle.mesh.position.x = -50;
+       rectangle.mesh.position.y = -50;*/
+    }
+
+    var angle = 0;
+
+    function animate() {
+      angle += 0.005
+      controls.update();
+      circle.update(angle)
+      rectangles.forEach(function (r) {
+        r.update(angle)
+        if (r.collidingCircle() == true) {
+          circle.mesh.material.color = new THREE.Color(0x00ff00)
+          // r.mesh.material.color = new THREE.Color(0x00ff00)
+
+        } else {
+          //r.mesh.material.color = new THREE.Color(0xff0000)
+          circle.mesh.material.color = new THREE.Color(0xff0000)
+        }
+      })
+
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+
+  </script>
+</body>
+
+</html>

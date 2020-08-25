@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>three.js webgl - morphtargets - MD2 controls</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<style>
+		body {
+			color: #000;
+			font-family: Monospace;
+			font-size: 13px;
+			text-align: center;
+			font-weight: bold;
+
+			background-color: #fff;
+			margin: 0px;
+			overflow: hidden;
+		}
+
+		#info {
+			position: absolute;
+			padding: 10px;
+			width: 100%;
+			text-align: center;
+			color: #000;
+		}
+
+		a {
+			color: skyblue;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="info">
+		<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - MD2 Loader -
+		<br />
+		use arrows to control characters, mouse for camera
+
+		<br>
+		<p id='msg'></p>
+		<button id="play" style="width:20%">Play Sound</button>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+	<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+	<script src='js/MD2Loader.js'></script>
+	<script src='js/MorphBlendMesh.js'></script>
+	<script src='js/MD2CharacterComplex.js'></script>
+	<script src='js/Gyroscope.js'></script>
+	<script src="https://rawgit.com/jyunming-chen/tutsplus/master/js/text2D.js"></script>
+	<audio id="getcoinsound" style="display:none">
+		<source src="sounds/getCoin.wav" type='audio/wav'>
+	</audio>
+	<audio id="soundtrack" autoplay loop style="display:none">
+		<source src="sounds/backgroundMusic.mp3" type='audio/wav'>
+	</audio>
+
+	<script>
+		class MD2Wrapper {
+			constructor(config, controls, pos, scale = 1) {
+
+				this.md2 = new THREE.MD2CharacterComplex();
+				this.md2.scale = scale
+				this.md2.controls = controls
+
+				this.md2.onLoadComplete = function () {
+					// here: 'this' is md2
+
+					// cast and receive shadows
+					this.enableShadows(true);
+
+					this.setWeapon(0);
+					this.setSkin(0);
+
+					//this.root.position.copy (pos);
+					this.root.position.x = pos.x;
+					this.root.position.z = pos.z;
+
+					// y is automatically set, accoording to scale ...				
+					console.log('y is ' + this.root.position.y)
+
+					scene.add(this.root);
+
+				}
+				this.md2.loadParts(config);
+
+			}
+		}
+		class Coin {
+			constructor(mesh, side1, side2, pos) {
+				this.mesh = new THREE.Group();
+				this.mesh.add(mesh, side1, side2);
+				this.mesh.position.copy(pos);
+				scene.add(this.mesh);
+			}
+		}
+
+		var SCREEN_WIDTH = window.innerWidth;
+		var SCREEN_HEIGHT = window.innerHeight;
+		var container, stats;
+		var camera, scene, renderer;
+		var orgoWrap;
+		var light;
+		var coins = [], texts = [], texts2 = [], textlength = 0;
+		var box3, box3Helper;
+		var box, boxHelper;
+		var cameraControls;
+		var clock = new THREE.Clock();
+		var sceneHUD, cameraHUD;
+		var jump = 0, touch = 0;
+		var getCoinSound, soundTrack;
+		var isPaused = false;
+		var isDimming = false, soundVal = 1.0, sign = 1.0;
+		var angle = 0;
+
+		$('#play').click(function () {
+			isPaused = !isPaused;
+			if (isPaused) {
+				$('#play').text('Play')
+				soundTrack.pause()
+			} else {
+				$('#play').text('Pause')
+				soundTrack.play()
+			}
+		});
+		function toggle() {
+			isDimming = !isDimming;
+			sign = isDimming ? -1 : 1;
+			// console.log (isDimming);
+		}
+		init();
+		animate();
+		function createPlatform() {
+			var platform = new THREE.Group();
+			var platMap = new THREE.TextureLoader().load("map/floor2.jpg");
+			let platform1 = new THREE.Mesh(new THREE.BoxGeometry(1000, 50, 1000), new THREE.MeshPhongMaterial({ map: platMap }))
+
+			let platform2 = new THREE.Mesh(new THREE.BoxGeometry(800, 50, 800), new THREE.MeshPhongMaterial({ map: platMap }))
+
+			let platform3 = new THREE.Mesh(new THREE.BoxGeometry(600, 50, 600), new THREE.MeshPhongMaterial({ map: platMap }))
+			platform.add(platform1, platform2, platform3)
+			platform1.position.y = 25;
+			platform2.position.y = 75;
+			platform3.position.y = 125;
+			scene.add(platform);
+			let platform4 = new THREE.Mesh(new THREE.BoxGeometry(1000, 50, 1000), new THREE.MeshPhongMaterial({ map: platMap }))
+			scene.add(platform4)
+			platform4.position.set(1000, 25, -1000)
+			let platform5 = new THREE.Mesh(new THREE.BoxGeometry(800, 50, 800), new THREE.MeshPhongMaterial({ map: platMap }))
+			scene.add(platform5)
+			platform5.position.set(-1000, 25, -1000)
+			platform1.material.map.repeat.set(5, 5);
+			platform1.material.map.wrapS = platform1.material.map.wrapT = THREE.RepeatWrapping;
+
+		}
+		function createPillar() {
+			var platMap = new THREE.TextureLoader().load("map/floor2.jpg");
+			var topMap = new THREE.TextureLoader().load("map/floor2.jpg");
+			var pillar = [], top = [];
+			for (var i = 0; i < 4; i++) {
+				pillar[i] = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 600, 80), new THREE.MeshPhongMaterial({ map: platMap }))
+				scene.add(pillar[i]);
+			}
+			pillar[0].position.set(-500, 300, 500)
+			pillar[1].position.set(500, 300, 500)
+			pillar[2].position.set(-500, 300, -500)
+			pillar[3].position.set(500, 300, -500)
+			for (var i = 0; i < 8; i++) {
+				top[i] = new THREE.Mesh(new THREE.BoxGeometry(150, 30, 150), new THREE.MeshPhongMaterial({ map: topMap }))
+				if (i < 4) {
+					top[i].position.set(0, 300, 0)
+					pillar[i].add(top[i]);
+				}
+				else {
+					top[i].position.set(0, -285, 0)
+					pillar[i % 4].add(top[i]);
+				}
+			}
+		}
+		function createCoin() {
+			Coin = new THREE.Group();
+			var coinMap = new THREE.TextureLoader().load("map/coin.jpg");
+			var coin = new THREE.Mesh(new THREE.CylinderGeometry(50, 50, 10, 80, 2, true), new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2;
+
+			let coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone();
+
+			Coin.add(coin, coinSide1, coinSide2);
+			coinSide1.position.z = 5;
+			coinSide2.position.z = -5;
+			scene.add(Coin);
+
+			Coin.position.x = 100
+			Coin.position.y = 370;
+
+			box = new THREE.Box3();
+			boxHelper = new THREE.Box3Helper(box)
+			//scene.add(boxHelper)
+		}
+
+		function init() {
+			getCoinSound = document.getElementById('getcoinsound');
+			soundTrack = document.getElementById('soundtrack');
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			// CAMERA
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000);
+			camera.position.set(0, 150, 1300);
+
+			// SCENE
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0xffffff);
+			scene.fog = new THREE.Fog(0xffffff, 1000, 4000);
+
+			scene.add(camera);
+
+			// LIGHTS
+
+			scene.add(new THREE.AmbientLight(0x222222));
+
+			light = new THREE.DirectionalLight(0xffffff, 2.25);
+			light.position.set(200, 450, 500);
+
+			light.castShadow = true;
+
+			light.shadow.mapSize.width = 1024;
+			light.shadow.mapSize.height = 512;
+
+			light.shadow.camera.near = 100;
+			light.shadow.camera.far = 1200;
+
+			light.shadow.camera.left = -1000;
+			light.shadow.camera.right = 1000;
+			light.shadow.camera.top = 350;
+			light.shadow.camera.bottom = -350;
+
+			scene.add(light);
+			var background = new THREE.TextureLoader().load("map/background2.jpg");
+			scene.background = background;
+
+			//  GROUND
+
+			//var gt = new THREE.TextureLoader().load( "grasslight-big.jpg" );
+			var gt = new THREE.TextureLoader().load("map/ground1.jpg");
+
+			var gg = new THREE.PlaneBufferGeometry(16000, 16000);
+			var gm = new THREE.MeshPhongMaterial({ color: 0xffffff, map: gt });
+
+			var ground = new THREE.Mesh(gg, gm);
+			ground.rotation.x = - Math.PI / 2;
+			ground.material.map.repeat.set(64, 64);
+			ground.material.map.wrapS = THREE.RepeatWrapping;
+			ground.material.map.wrapT = THREE.RepeatWrapping;
+			// note that because the ground does not cast a shadow, .castShadow is left false
+			ground.receiveShadow = true;
+
+			scene.add(ground);
+
+			let axes = new THREE.AxesHelper(100)
+			scene.add(axes)
+
+			// RENDERER
+
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+			container.appendChild(renderer.domElement);
+
+			renderer.gammaInput = true;
+			renderer.gammaOutput = true;
+
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+
+			// EVENTS
+
+			window.addEventListener('resize', onWindowResize, false);
+			document.addEventListener('keydown', onKeyDown, false);
+			document.addEventListener('keyup', onKeyUp, false);
+
+			// CONTROLS
+
+			cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
+			cameraControls.target.set(0, 50, 0);
+			cameraControls.update();
+
+			//PLANT AND PILLAR
+			createPlatform();
+			createPillar();
+
+			/////////////////////////////////////////////////////////////////////////////
+			// CHARACTER: yoshi
+
+			let configOrgo = {
+
+				baseUrl: "md2models/",
+
+				body: "Ogros.md2",
+				skins: ["igdosh.png"],
+				weapons: [],
+				animations: {
+					move: "run",
+					idle: "stand",
+					jump: "jump",
+					attack: "attack",
+					crouchMove: "cwalk",
+					crouchIdle: "cstand",
+					crouchAttach: "crattack",
+					bumflop: "bumflop",
+					deathc: "deathc"
+				},
+
+				walkSpeed: 350, //translation speed
+				crouchSpeed: 175
+
+			};
+
+			let controls = {
+
+				moveForward: false,
+				moveBackward: false,
+				moveLeft: false,
+				moveRight: false
+
+			};
+
+			orgoWrap = new MD2Wrapper(configOrgo, controls, new THREE.Vector3(-700, 0, 0), 3);
+			var gyro = new THREE.Gyroscope();
+			gyro.add(camera);
+
+			gyro.add(light, light.target);
+			orgoWrap.md2.root.add(gyro);
+
+			box3 = new THREE.Box3();
+			box3Helper = new THREE.Box3Helper(box3)
+			//scene.add(box3Helper)
+
+			///////////////////////////////////////////////////////////
+			var coinMap = new THREE.TextureLoader().load("map/coin.jpg");
+			let geometry = new THREE.CylinderGeometry(50, 50, 10, 80, 2, true)
+			//Coin = new THREE.Group();
+			var coin = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2
+			var coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone()
+			coinSide1.position.z = 5
+			coinSide2.position.z = -5
+			coins[0] = new Coin(coin, coinSide1, coinSide2, new THREE.Vector3(100, 370, 0))
+
+			var coin = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2
+			var coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone()
+			coinSide1.position.z = 5
+			coinSide2.position.z = -5
+			coins[1] = new Coin(coin, coinSide1, coinSide2, new THREE.Vector3(-100, 370, 0))
+
+			var coin = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2
+			var coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone()
+			coinSide1.position.z = 5
+			coinSide2.position.z = -5
+			coins[2] = new Coin(coin, coinSide1, coinSide2, new THREE.Vector3(-1000, 50, 0))
+
+			var coin = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2
+			var coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone()
+			coinSide1.position.z = 5
+			coinSide2.position.z = -5
+			coins[3] = new Coin(coin, coinSide1, coinSide2, new THREE.Vector3(-1000, 250, -1000))
+
+			var coin = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00, visible: true }));
+			coin.rotation.x = Math.PI / 2
+			var coinSide1 = new THREE.Mesh(new THREE.CircleGeometry(50, 32), new THREE.MeshPhongMaterial({ map: coinMap, side: THREE.DoubleSide, visible: true }))
+			var coinSide2 = coinSide1.clone()
+			coinSide1.position.z = 5
+			coinSide2.position.z = -5
+			coins[4] = new Coin(coin, coinSide1, coinSide2, new THREE.Vector3(1000, 250, -1000))
+
+			box = new THREE.Box3();
+			boxHelper = new THREE.Box3Helper(box)
+			//scene.add(boxHelper)
+
+			//////////////////////////////////////////////////////////
+			cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1600);
+			cameraHUD.position.z = 1580;
+			sceneHUD = new THREE.Scene();
+			whRatio = window.innerWidth / window.innerHeight;
+			halfH = 10;
+			halfW = whRatio * halfH;
+			var Text2D = THREE_Text.MeshText2D;
+			var SpriteText2D = THREE_Text.SpriteText2D;
+			var textAlign = THREE_Text.textAlign;
+
+			texts[0] = new Text2D("JUMP: space", {
+				align: textAlign.center,
+				font: '20px Times',
+				fillStyle: '#000000',
+				antialias: false,
+				depthTest: false
+			});
+			texts[0].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[0]);
+			texts[0].position.set(-halfW / 3, -(halfH - halfW / 10), 0);
+
+			texts[1] = new Text2D("SIT: B", {
+				align: textAlign.center,
+				font: '20px Times',
+				fillStyle: '#000000',
+				antialias: false,
+				depthTest: false
+			});
+			texts[1].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[1]);
+			texts[1].position.set(-halfW / 2.45, -(halfH - halfW / 10) + 1, 0);
+
+			texts[2] = new Text2D("DIE: Z", {
+				align: textAlign.center,
+				font: '20px Times',
+				fillStyle: '#000000',
+				antialias: false,
+				depthTest: false
+			});
+			texts[2].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[2]);
+			texts[2].position.set(-halfW / 2.45, -(halfH - halfW / 10) + 2, 0);
+
+			texts[3] = new Text2D("CROUCH: C", {
+				align: textAlign.center,
+				font: '20px Times',
+				fillStyle: '#000000',
+				antialias: false,
+				depthTest: false
+			});
+			texts[3].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[3]);
+			texts[3].position.set(-halfW / 3, -(halfH - halfW / 10) + 3, 0);
+
+			texts[4] = new Text2D("COIN * 0", {
+				align: textAlign.center,
+				font: '20px helvetiker',
+				fillStyle: '#ffffff',
+				antialias: false,
+				depthTest: false
+			});
+			texts[4].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[4]);
+			texts[4].position.set(-halfW / 2.5, (halfH - halfW / 10), 0);
+
+			texts[5] = new Text2D("MOVE : WASD", {
+				align: textAlign.center,
+				font: '20px Times',
+				fillStyle: '#000000',
+				antialias: false,
+				depthTest: false
+			});
+			texts[5].scale.set(0.05, 0.05, 0.05);
+			sceneHUD.add(texts[5]);
+			texts[5].position.set(-halfW / 3.3, -(halfH - halfW / 10) + 4, 0);
+
+			renderer.autoClear = false;
+
+			var platMap = new THREE.TextureLoader().load("map/floor2.jpg");
+			var wall = new THREE.Mesh(new THREE.BoxGeometry(200, 500, 1000), new THREE.MeshPhongMaterial({ map: platMap }));
+			scene.add(wall);
+			wall.position.set(-1500, 250, 0)
+			var treeMap = new THREE.TextureLoader().load('map/tree.jpg');
+
+			var texMat = new THREE.MeshBasicMaterial({
+				map: treeMap,
+				transparent: true
+			});
+
+			tree = new THREE.Mesh(new THREE.PlaneGeometry(400, 500), texMat);
+			trees = []
+			for (let i = 0; i < 15; i++) {
+				let tt = tree.clone();
+				tt.position.set((-1 + Math.random() * 2) * 2000, 250, (-1 + Math.random() * 2) * 2000)
+				trees.push(tt)
+				//scene.add (tt)
+			}
+		}
+
+		// EVENT HANDLERS
+
+		function onWindowResize(event) {
+
+			SCREEN_WIDTH = window.innerWidth;
+			SCREEN_HEIGHT = window.innerHeight;
+
+			renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+			camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+			camera.updateProjectionMatrix();
+
+		}
+
+		function onKeyDown(event) {
+
+			event.stopPropagation();
+			let controlsY = orgoWrap.md2.controls;
+
+			switch (event.keyCode) {
+
+				case 38: /*up*/
+				case 87: /*W*/ 	controlsY.moveForward = true; break;
+
+				case 40: /*down*/
+				case 83: /*S*/ 	 controlsY.moveBackward = true; break;
+
+				case 37: /*left*/
+				case 65: /*A*/   controlsY.moveLeft = true; break;
+
+				case 39: /*right*/
+				case 68: /*D*/    controlsY.moveRight = true; break;
+
+				case 32: /*space*/ controlsY.jump = true; if (touch) jump = 1; break;
+				// jump: should save the animation before jump
+				// return to that animation, when SPACE is up
+
+				case 67: /*C*/     controlsY.crouch = true; break;
+				case 17: /*ctrl*/  controlsY.attack = true; break;
+				case 66: /*B*/ controlsY.bumflop = true; break;
+				case 90: /*D*/ controlsY.deathc = true; break;
+			}
+
+		}
+
+		function onKeyUp(event) {
+
+			event.stopPropagation();
+			let controlsY = orgoWrap.md2.controls;
+
+			switch (event.keyCode) {
+
+				case 38: /*up*/
+				case 87: /*W*/ controlsY.moveForward = false; break;
+
+				case 40: /*down*/
+				case 83: /*S*/ 	 controlsY.moveBackward = false; break;
+
+				case 37: /*left*/
+				case 65: /*A*/ 	 controlsY.moveLeft = false; break;
+
+				case 39: /*right*/
+				case 68: /*D*/ 	  controlsY.moveRight = false; break;
+
+				case 32: /*space*/ controlsY.jump = false; break;
+				// jump: should save the animation before jump
+				// return to that animation, when SPACE is up
+
+				case 67: /*C*/     controlsY.crouch = false; break;
+				case 17: /*ctrl*/  controlsY.attack = false; break;
+				case 66: /*B*/ controlsY.bumflop = false; break;
+				case 90: /*D*/ controlsY.deathc = false; break;
+			}
+
+		}
+
+		var time = 1;
+
+		function getCoin(coin) {
+			var Text2D = THREE_Text.MeshText2D;
+			var SpriteText2D = THREE_Text.SpriteText2D;
+			var textAlign = THREE_Text.textAlign;
+			var x = orgoWrap.md2.root.position.x, y = orgoWrap.md2.root.position.y, z = orgoWrap.md2.root.position.z;
+			if (x < coin.mesh.position.x + 50 && x > coin.mesh.position.x - 50) {
+				if (z < coin.mesh.position.z + 50 && z > coin.mesh.position.z - 50) {
+					touch = 1;
+					if (jump) { y += 100; jump = 0; }
+					console.log(orgoWrap.md2.root.position.y)
+					if (y < coin.mesh.position.y + 50 && y > coin.mesh.position.y - 50) {
+						getCoinSound.play();
+						texts[4].text = "COIN * " + time;
+						time++;
+						texts2[textlength] = new Text2D("GET!", {
+							align: textAlign.center,
+							font: '30px Times',
+							fillStyle: '#ffff00',
+							antialias: false,
+							depthTest: false
+						});
+						texts2[textlength].position.copy(coin.mesh.position)
+						texts2[textlength].position.y += 50
+
+						coin.mesh.position.y = 10000;
+						scene.add(texts2[textlength]);
+						textlength++;
+					}
+					if (time > 5) {
+						texts[6] = new Text2D("YOU WIN!!", {
+							align: textAlign.center,
+							font: '50px Times',
+							fillStyle: '#ff0000',
+							antialias: false,
+							depthTest: false
+						});
+						texts[6].scale.set(0.05, 0.05, 0.05);
+						sceneHUD.add(texts[6]);
+						//texts[6].position.set(-halfW / 3.3, -(halfH - halfW / 10) + 4, 0)
+					}
+					//jump = 1;
+					y = orgoWrap.md2.root.position.y
+				}
+			}
+		}
+
+		function groundLevel(x, z) {
+
+			if (Math.abs(x) < 300 && Math.abs(z) < 300)
+				return 222.75333023071289;
+			else if (Math.abs(x) < 400 && Math.abs(z) < 400)
+				return 172.75333023071289;
+			else if (Math.abs(x) < 500 && Math.abs(z) < 500)
+				return 122.75333023071289;
+			//1000, 25, -1000
+			else if (x > 500 && x < 1500 && z > -1500 && z < -500)
+				return 122.75333023071289;
+			else if (x > -1400 && x < -600 && z > -1400 && z < -600)
+				return 122.75333023071289;
+			else
+				return 72.75333023071289;
+
+		}
+
+		function moveLimit(x, z) {
+			if (x > -1500) {
+				if (x < -1400 && z < 500 && z > -500) {
+					orgoWrap.md2.root.position.x = -1400;
+				}
+			}
+			else {
+				if (x > -1600 && z < 500 && z > -500) {
+					orgoWrap.md2.root.position.x = -1600;
+				}
+			}
+			//-500, 300, 500 R = 60
+			if (x < -550) {
+				if (x > -560 && z > 440 && z < 560) {
+					orgoWrap.md2.root.position.x = -560;
+				}
+			}
+			else {
+				if (x < -440 && z > 440 && z < 560) {
+					orgoWrap.md2.root.position.x = -440;
+				}
+
+			}
+			//-500, 300, -500 R = 60
+			if (x < -550) {
+				if (x > -560 && z < -440 && z > -560) {
+					orgoWrap.md2.root.position.x = -560;
+				}
+			}
+			else {
+				if (x < -440 && z < -440 && z > -560) {
+					orgoWrap.md2.root.position.x = -440;
+				}
+
+			}
+			//500, 300, -500 R = 60
+			if (x < 450) {
+				if (x > 440 && z < -440 && z > -560) {
+					orgoWrap.md2.root.position.x = 440;
+				}
+			}
+			else {
+				if (x < 550 && z < -440 && z > -560) {
+					orgoWrap.md2.root.position.x = 550;
+				}
+
+			}
+			//500, 300, 500 R = 60
+			if (x < 450) {
+				if (x > 440 && z > 440 && z < 560) {
+					orgoWrap.md2.root.position.x = 440;
+				}
+			}
+			else {
+				if (x < 550 && z > 440 && z < 560) {
+					orgoWrap.md2.root.position.x = 550;
+				}
+			}
+		}
+		
+		function animate() {
+			//scene.background.rotation.x = angle;
+			trees.forEach(function (t) { t.lookAt(camera.position) })
+			texts2.forEach(function (t) { t.lookAt(camera.position) })
+			soundVal += sign * 0.01;
+			soundVal = THREE.Math.clamp(soundVal, 0, 1);
+			soundtrack.volume = soundVal;
+
+			angle += 0.05
+
+			for (var i = 0; i < coins.length; i++) {
+				coins[i].mesh.rotation.y = angle;
+			}
+
+			requestAnimationFrame(animate);
+			render();
+
+		}
+
+		function render() {
+			box3.setFromObject(orgoWrap.md2.root)
+
+			var delta = clock.getDelta();
+
+			if (orgoWrap.md2) {
+				orgoWrap.md2.update(delta)
+				orgoWrap.md2.root.position.y = groundLevel(orgoWrap.md2.root.position.x, orgoWrap.md2.root.position.z)
+				moveLimit(orgoWrap.md2.root.position.x, orgoWrap.md2.root.position.z);
+			}
+
+			touch = 0;
+
+			for (var i = 0; i < coins.length; i++) {
+				getCoin(coins[i]);
+			}
+
+			renderer.clear();
+			renderer.render(scene, camera);
+			renderer.render(sceneHUD, cameraHUD);
+
+		}
+
+	</script>
+
+</body>
+
+</html>

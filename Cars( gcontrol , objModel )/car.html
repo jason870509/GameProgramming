@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<style>
+		body {
+			font-family: Monospace;
+			background-color: #000;
+			color: #fff;
+			margin: 0px;
+			overflow: hidden;
+		}
+
+		#info {
+			color: #fff;
+			position: absolute;
+			top: 10px;
+			width: 100%;
+			text-align: center;
+			z-index: 100;
+			display: block;
+		}
+
+		#info a,
+		.button {
+			color: #f00;
+			font-weight: bold;
+			text-decoration: underline;
+			cursor: pointer
+		}
+	</style>
+</head>
+
+<body>
+	<div id="info">
+		<a href="http://threejs.org" target="_blank">three.js</a> - OBJLoader + MTLLoader
+	</div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+	<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+	<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+	<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+
+	<script>
+		var camera, scene, renderer;
+		var theObject;
+		var mouseX = 0, mouseY = 0;
+		var windowHalfX = window.innerWidth / 2;
+		var windowHalfY = window.innerHeight / 2;
+		var controls;
+		var bs;
+		var modelName;
+		var theModel;
+		var angle = [], x1 = [], y1 = [];
+		var gcontrols, orbitcontrols;
+		var pointLight;
+		var car = [], num = 0;
+		var theObject;
+		var x = [], y = [];
+
+		init();
+		animate();
+
+		function init() {
+
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+			renderer.setClearColor(0x888888);
+
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+			camera.position.z = 100;
+			controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+			// scene
+
+			scene = new THREE.Scene();
+
+			var ambient = new THREE.AmbientLight(0x444444);
+			scene.add(ambient);
+			orbitcontrols = new THREE.OrbitControls(camera, renderer.domElement);
+
+			var gridxz = new THREE.GridHelper(200, 20, 'red', 'white');
+			scene.add(gridxz);
+			gridxz.rotation.x = Math.PI / 2;
+
+			var directionalLight = new THREE.DirectionalLight(0xffffff);
+			directionalLight.position.set(0, 0, 1).normalize();
+			scene.add(directionalLight);
+
+			pointLight = new THREE.PointLight(0xffffff);
+			scene.add(pointLight);
+
+			window.addEventListener('resize', onWindowResize, false);
+
+			///////////////////////////////////////////////////////////////////	 
+			gcontrols = new function () {
+				this.speed = 0.5;
+				this.turn = false;
+
+				var pointLightHelper;
+
+				this.add = function () {
+					var sphereSize = 5;
+					pointLightHelper = new THREE.PointLightHelper(pointLight, sphereSize);
+					scene.add(pointLightHelper);
+				};
+
+				this.remove = function () {
+					scene.remove(pointLightHelper);
+				};
+
+				this.pointx = 0;
+				this.pointy = 100;
+				this.pointz = 100;
+
+				this.addCar = function () {
+					car[num] = theObject.clone();
+					scene.add(car[num]);
+					angle[num] = 0;
+					x1[num] = 0;
+					y1[num] = 0;
+					x[num] = 0;
+					y[num] = 0;
+					car[num].position.set(0, 0, 0);
+					num++;
+
+				}
+
+				this.removeCar = function () {
+					scene.remove(car[--num]);
+				}
+			}
+
+			var gui = new dat.GUI();
+			gui.domElement.id = 'gui';
+			var f1 = gui.addFolder("motion");
+
+			f1.add(gcontrols, 'speed', -1.5, 1.5);
+			f1.add(gcontrols, 'turn');
+
+			var f2 = gui.addFolder('light');
+			f2.add(gcontrols, 'pointx', -100, 100);
+			f2.add(gcontrols, 'pointy', -200, 200);
+			f2.add(gcontrols, 'pointz', -100, 100);
+
+			var f3 = gui.addFolder('pointLightHelper');
+			f3.add(gcontrols, 'add');
+			f3.add(gcontrols, 'remove');
+			gcontrols.add();
+
+			var f4 = gui.addFolder('car');
+			f4.add(gcontrols, 'addCar');
+			f4.add(gcontrols, 'removeCar');
+
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+
+			readModel();
+
+			
+		}
+
+		function readModel(targetSize = 40) {
+
+			var onProgress = function (xhr) {
+				if (xhr.lengthComputable) {
+					var percentComplete = xhr.loaded / xhr.total * 100;
+					console.log(Math.round(percentComplete, 2) + '% downloaded');
+				}
+			};
+
+			var onError = function (xhr) { };
+
+			var mtlLoader = new THREE.MTLLoader();
+			mtlLoader.setPath('models/');
+			mtlLoader.load('car.mtl', function (materials) {
+
+				materials.preload();
+
+				var objLoader = new THREE.OBJLoader();
+				objLoader.setMaterials(materials);
+				objLoader.setPath('models/');
+				objLoader.load('car.obj', function (object) {
+
+					theObject = unitize(object, targetSize);
+					theObject.name = 'OBJ'
+
+				}, onProgress, onError);
+
+			});
+
+		}
+
+		////////////////////////////////////////
+		// wrap an Object3D around the given object
+		// so that it is centered at +Y axis
+		// 
+		function unitize(object, targetSize) {
+
+			// find bounding box of 'object'
+			var box3 = new THREE.Box3();
+			box3.setFromObject(object);
+			var size = new THREE.Vector3();
+			size.subVectors(box3.max, box3.min);
+			var center = new THREE.Vector3();
+			center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+			console.log('center: ' + center.x + ', ' + center.y + ', ' + center.z);
+			console.log('size: ' + size.x + ', ' + size.y + ', ' + size.z);
+
+			// uniform scaling according to objSize
+			var objSize = Math.max(size.x, size.y, size.z);
+			var scaleSet = targetSize / objSize;
+			var theObject1 = new THREE.Object3D();
+
+			theObject1.add(object);
+			object.scale.set(scaleSet, scaleSet, scaleSet);
+			object.rotation.y = Math.PI / 2
+
+			return theObject1;
+		}
+
+		function animate() {
+			pointLight.position.set(gcontrols.pointx, gcontrols.pointy, gcontrols.pointz);
+
+			var k = 3;
+			var cos = Math.cos;
+			var sin = Math.sin;
+
+			if (gcontrols.turn) {
+				for (var j = 0; j < num; j++) {
+					angle[j] += gcontrols.speed * 0.01;
+				}
+			}
+
+			for (var j = 0; j < num; j++) {
+				x[j] = -100 * cos(k * angle[j]) * sin(angle[j]) - k * sin(k * angle[j]) * cos(angle[j]);
+				y[j] = -100 * cos(k * angle[j]) * cos(angle[j]) - k * sin(k * angle[j]) * sin(angle[j]);
+				car[j].position.set(100 * cos(k * angle[j]) * cos(angle[j]), 100 * cos(k * angle[j]) * sin(angle[j]), 0);
+				car[j].rotation.y = Math.atan2(x1[j] - x[j], y1[j] - y[j]);
+				x1[j] = x[j];
+				y1[j] = y[j];
+			}
+
+			for (var j = 0; j < num; j++)
+				car[j].rotation.x = Math.PI / 2;
+
+			requestAnimationFrame(animate);
+			orbitcontrols.update();
+			render();
+		}
+
+		function render() {
+
+			renderer.render(scene, camera);
+
+		}
+
+	</script>
+</body>
+
+</html>

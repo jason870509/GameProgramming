@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <style>
+
+    #info {
+      position: absolute;
+      top: 0px;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      color: #ffff00
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div id="info">hw4 walking</div>
+  
+  <script src="https://jyunming-chen.github.io/game3js/js/ccdsys.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://rawgit.com/jyunming-chen/tutsplus/master/js/text2D.js"></script>
+  <script src="js/Gyroscope.js"></script>
+  
+  <script>
+    const LS = 5.3, L2 = 5.2, L1 = 4.8, Lh = 3.3, Hh = 8.3;
+
+    class TwoLinkLeg {
+
+      constructor() {
+        this.theta1 = 0;
+        this.theta2 = 0;
+      }
+
+      init() {
+        var material = new THREE.MeshPhongMaterial({
+          color: 0xff00ff
+        });
+        let body = new THREE.Object3D();
+
+        this.thigh = new THREE.Object3D();
+        let thighMesh = new THREE.Mesh(new THREE.BoxGeometry(1, L2, 1), material)
+        thighMesh.castShadow = true;
+        thighMesh.receiveShadow = true;
+        this.thigh.add(thighMesh)
+        thighMesh.position.y = -L2 / 2
+        body.add(this.thigh)
+
+        this.leg = new THREE.Object3D()
+        let legMesh = new THREE.Mesh(new THREE.BoxGeometry(1, L1, 1), material)
+        legMesh.castShadow = true;
+        legMesh.receiveShadow = true;
+        this.leg.add(legMesh)
+        legMesh.position.y = -L1 / 2
+        this.leg.position.y = -L2
+        this.thigh.add(this.leg)
+
+        this.torso = new THREE.Object3D();
+        let torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(1, Lh, 1), material)
+        torsoMesh.castShadow = true;
+        torsoMesh.receiveShadow = true;
+        this.torso.add(torsoMesh)
+        torsoMesh.position.y = Lh / 2
+        body.add(this.torso)
+
+        return body;
+      }
+
+      update(thetas) {
+        this.theta1 = thetas[0]
+        this.theta2 = thetas[1]
+        this.thigh.rotation.z = this.theta1
+        this.leg.rotation.z = this.theta2
+      }
+    }
+
+    var camera, scene, renderer;
+    var clock = new THREE.Clock();
+    var body;
+
+    init();
+    animate();
+
+    function fk(thetas, joints) {
+
+      var localzero = new THREE.Vector3(0, 0, 0);
+      var m = new THREE.Matrix4();
+      m.makeRotationZ(thetas[0]);
+      m.multiply(new THREE.Matrix4().makeTranslation(0, -L1, 0));
+      localzero.applyMatrix4(m);
+      joints[1].copy(localzero);
+
+      localzero.set(0, 0, 0);
+      m.multiply(new THREE.Matrix4().makeRotationZ(thetas[1]));
+      m.multiply(new THREE.Matrix4().makeTranslation(0, -L2, 0));
+      localzero.applyMatrix4(m);
+      joints[2].copy(localzero);
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+
+      let loader = new THREE.TextureLoader();
+      loader.crossOrigin = '';
+      texture = loader.load('https://i.imgur.com/p8CRm9W.jpg');
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+      camera.position.z = 50;
+
+      var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+      //scene.add(gridXZ);
+      var floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({
+        map: texture,
+        side: THREE.DoubleSide
+      }));
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(20, 20);
+      floor.rotation.x = -Math.PI / 2
+      scene.add(floor)
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x888888);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      scene.add(new THREE.AmbientLight(0x222222));
+
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      document.body.appendChild(renderer.domElement);
+
+      ///////////////////////////////////////////////////////////
+      //set body
+      bodyLink = new TwoLinkLeg();
+      body = bodyLink.init();
+      scene.add(body)
+      body.position.y = Hh;
+
+      bodyLink2 = new TwoLinkLeg();
+      body2 = bodyLink2.init();
+      scene.add(body2)
+      body2.position.z = 1;
+      body2.position.y = Hh;
+
+      //////////////////////////////////////
+      //set ccdSys
+      bodyLink.ccdSys = new CCDSys(fk)
+      bodyLink.ccdSys.setCCDAxis(new THREE.Vector3(0, 0, 1), 0)
+      bodyLink.ccdSys.setCCDAxis(new THREE.Vector3(0, 0, 1), 1, -3, 0)
+      bodyLink.target = new THREE.Vector3();
+
+      bodyLink2.ccdSys = new CCDSys(fk)
+      bodyLink2.ccdSys.setCCDAxis(new THREE.Vector3(0, 0, 1), 0)
+      bodyLink2.ccdSys.setCCDAxis(new THREE.Vector3(0, 0, 1), 1, -3, 0)
+      bodyLink2.target = new THREE.Vector3();
+
+      //////////////////////////////////////////////////
+      //set Gyro
+      gyro = new THREE.Gyroscope();
+      scene.add(gyro)
+      gyro.add(camera)
+      body.add(gyro)
+      
+      /////////////////////////////////////////////////////////
+      // spotlight
+      light = new THREE.SpotLight(0xffffff, 1.5);
+      light.position.set(0, 40, 80);
+      light.angle = Math.PI / 3;
+      light.penumbra = 0.5;
+      gyro.add(light);
+      light.target = body;
+
+      // shadow map settings
+      light.castShadow = true;
+      light.shadow.mapSize.width = 4096;
+      light.shadow.mapSize.height = 4096;
+      light.shadow.camera.near = 1;
+      light.shadow.camera.far = 800;
+      light.shadow.camera.fov = light.angle / Math.PI * 180 * 2;
+
+      floor.receiveShadow = true;
+      var Text2D = THREE_Text.MeshText2D;
+      var textAlign = THREE_Text.textAlign;
+
+      /////////////////////////////////////////////////////////
+      // text
+      text = new Text2D("走平面", {
+        align: textAlign.center,
+        fillStyle: '#00ffff',
+        antialias: false
+      });
+      //gyro.add(text)
+      text.position.y = 20
+      text.scale.set(0.1, 0.1, 0.1);
+    }
+
+    function animate() {
+      thetaGroin = 0.31
+      thetaKnee = 0.6
+
+      bodyLink.thigh.rotation.z = thetaGroin
+      bodyLink.leg.rotation.z = -thetaKnee;
+      bodyLink2.leg.rotation.z = -thetaKnee;
+      bodyLink2.thigh.rotation.z = thetaGroin
+
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function render() {
+      update();
+      renderer.render(scene, camera);
+    }
+
+    var x1 = 0, x2 = 5.3, y1 = 0, y2 = 0, dt = 0;
+
+    function update() {
+      var thetas;
+      var torsoTarget1, torsoTarget2, walkTarget1, walkTarget2;
+      var Ts = 1;
+      var time = clock.getElapsedTime();
+      dt += time;
+      var V = 5.3 / Ts;
+      var n = Math.floor(dt / Ts);
+      var tt = dt % Ts;
+
+      console.log()
+      torsoTarget1 = new THREE.Vector3(5.3 / 2 + 5.3 * dt / Ts, 8.3 - 0.6 / 2 * Math.cos(2 * Math.PI * dt / Ts) + 0.5, 0);
+      torsoTarget2 = new THREE.Vector3(5.3 / 2 + 5.3 * dt / Ts, 8.3 - 0.6 / 2 * Math.cos(2 * Math.PI * dt / Ts) + 0.5, 1);
+      body.position.copy(torsoTarget1)
+      body2.position.copy(torsoTarget2)
+
+      if (n % 2 === 0) {
+        x1 += 2 * V * time
+        y1 = 1 / 2 - 1 / 2 * Math.cos(2 * Math.PI * tt / (Ts))
+      } else {
+        x2 += 2 * V * time
+        y2 = 1 / 2 - 1 / 2 * Math.cos(2 * Math.PI * tt / (Ts));
+      }
+      walkTarget1 = new THREE.Vector3(x1, y1, 0);
+      body.worldToLocal(walkTarget1);
+      walkTarget2 = new THREE.Vector3(x2, y2, 1);
+      thetas = [bodyLink.theta1, bodyLink.theta2];
+      bodyLink.target.copy(walkTarget1);
+      bodyLink.ccdSys.solve(bodyLink.target, thetas);
+      bodyLink.update(thetas);
+
+      body2.worldToLocal(walkTarget2);
+      thetas = [bodyLink2.theta1, bodyLink2.theta2];
+      bodyLink2.target.copy(walkTarget2);
+      bodyLink2.ccdSys.solve(bodyLink2.target, thetas);
+      bodyLink2.update(thetas);
+      clock.start();
+    }
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <style>
+    #info {
+      position: absolute;
+      top: 0px;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      color: #ffff00
+    }
+
+    body {
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="info">hw3<br>
+    <button id="play" style="width:20%">Play Sound</button>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <audio id="soundtrack" autoplay loop style="display:none">
+    <source src="sounds/sorry.mp3" type='audio/wav'>
+  </audio>
+
+  <script>
+
+    var pose1 = {
+      headX: 0.3,
+      headY: -0.0028789161727349466,
+      headZ: 0,
+      bodyX: 0.0364238410596025,
+      bodyY: 0.06071126164267571,
+      rUpperArmX: -0.07366638441998319,
+      rUpperArmZ: 0.01447925486875512,
+      rLowerArmX: -0.5,
+      rLowerArmZ: 0.1,
+      lUpperArmX: 0.1,
+      lUpperArmZ: -0.07222692633361572,
+      lLowerArmX: 0.1,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: 0.1,
+      rUpperFeetY: 0.1,
+      rUpperFeetZ: 0.1,
+      rLowerFeetX: 0.1,
+      lUpperFeetX: 0.1,
+      lUpperFeetY: 0.1,
+      lUpperFeetZ: 0.1,
+      lLowerFeetX: 0.1
+    }
+
+    var pose2 = {
+      headX: 0.23324301439458078,
+      headY: 0.6257408975444538,
+      headZ: 0,
+      bodyX: 0.0364238410596025,
+      bodyY: -0.4920406435224385,
+      rUpperArmX: -1.0003386960203218,
+      rUpperArmZ: -0.41905165114309906,
+      rLowerArmX: -0.5071972904318374,
+      rLowerArmZ: 1.1404741744284506,
+      lUpperArmX: -0.8540220152413207,
+      lUpperArmZ: 0.3179508890770535,
+      lLowerArmX: 0.1,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: -0.1791701947502118,
+      rUpperFeetY: 0.1,
+      rUpperFeetZ: -0.43640982218458935,
+      rLowerFeetX: 0.30347163420829804,
+      lUpperFeetX: 0.1,
+      lUpperFeetY: 0.7991532599491955,
+      lUpperFeetZ: 0.300592718035563,
+      lLowerFeetX: 0.1
+    }
+
+    var pose3 = {
+      headX: 0.3,
+      headY: -0.4489686098654708,
+      headZ: 0,
+      bodyX: -0.07589403973509934,
+      bodyY: 0.3941704035874438,
+      rUpperArmX: -0.7786547085201794,
+      rUpperArmZ: 0.11739910313901358,
+      rLowerArmX: -0.5,
+      rLowerArmZ: 0.1,
+      lUpperArmX: -1.0231660231660231,
+      lUpperArmZ: 0.025954525954525742,
+      lLowerArmX: 0.21943371943371942,
+      lLowerArmZ: 0.9236808236808236,
+      rUpperFeetX: -0.4761904761904763,
+      rUpperFeetY: -1,
+      rUpperFeetZ: -0.2861432861432861,
+      rLowerFeetX: 0.27456027456027454,
+      lUpperFeetX: -0.35263835263835275,
+      lUpperFeetY: 0.07078507078507079,
+      lUpperFeetZ: 0.29043329043329047,
+      lLowerFeetX: 0.7687687687687688
+    }
+
+    var pose4 = {
+      headX: -0.2521395928541753,
+      headY: 0.1,
+      headZ: 0,
+      bodyX: -0.07589403973509934,
+      bodyY: 0.09534690486082242,
+      rUpperArmX: -2.4017449106771913,
+      rUpperArmZ: -0.7982966348151226,
+      rLowerArmX: -0.5,
+      rLowerArmZ: 0.5377411434584356,
+      lUpperArmX: -2.221411192214112,
+      lUpperArmZ: -0.4929710732630439,
+      lLowerArmX: 1.0031630170316301,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: 0.1,
+      rUpperFeetY: 0.1,
+      rUpperFeetZ: 0.1,
+      rLowerFeetX: 0.1,
+      lUpperFeetX: 0.1,
+      lUpperFeetY: 0.1,
+      lUpperFeetZ: 0.1,
+      lLowerFeetX: 0.1
+    }
+
+    var pose5 = {
+      headX: 0.3,
+      headY: -0.055502085338466456,
+      headZ: 0,
+      bodyX: 0.05717761557177603,
+      bodyY: 0.03994225216554392,
+      rUpperArmX: -0.9672762271414821,
+      rUpperArmZ: -1.432306705165223,
+      rLowerArmX: -1.6140519730510108,
+      rLowerArmZ: 0.1,
+      lUpperArmX: -1.1520692974013473,
+      lUpperArmZ: -1.514436958614052,
+      lLowerArmX: 1.7076997112608276,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: -0.5832531280076996,
+      rUpperFeetY: -0.8768046198267565,
+      rUpperFeetZ: -0.589348732755855,
+      rLowerFeetX: 0.49278152069297404,
+      lUpperFeetX: -0.3368623676612128,
+      lUpperFeetY: 1,
+      lUpperFeetZ: 0.3962143086300931,
+      lLowerFeetX: 0.3695861405197305
+    }
+
+    var pose6 = {
+      headX: 0.3,
+      headY: 0.5424009640006024,
+      headZ: 0,
+      bodyX: 0.05717761557177603,
+      bodyY: 0.03994225216554392,
+      rUpperArmX: -1.0912788070492545,
+      rUpperArmZ: 0.16064166290103943,
+      rLowerArmX: -1.4093990058743786,
+      rLowerArmZ: 0.1,
+      lUpperArmX: -1.481699051061907,
+      lUpperArmZ: 0.16064166290103943,
+      lLowerArmX: 1.7076997112608276,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: 0.16900135562584717,
+      rUpperFeetY: 0.8508811568007231,
+      rUpperFeetZ: -0.19023949389968364,
+      rLowerFeetX: 0.4048802530501582,
+      lUpperFeetX: -0.29371893357433354,
+      lUpperFeetY: -1,
+      lUpperFeetZ: -0.1323994577496611,
+      lLowerFeetX: 0.3695861405197305
+    }
+
+    var pose7 = {
+      headX: 0.3,
+      headY: 0.01021355617455888,
+      headZ: -0.009594552770040288,
+      bodyX: 0.0364238410596025,
+      bodyY: 0.04503249767873707,
+      rUpperArmX: -1.4846796657381618,
+      rUpperArmZ: 0.035437944908697006,
+      rLowerArmX: 0.1,
+      rLowerArmZ: 0.1,
+      lUpperArmX: -1.350974930362117,
+      lUpperArmZ: 0.035437944908697006,
+      lLowerArmX: 0.1,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: -0.36583101207056634,
+      rUpperFeetY: -0.5642216032188176,
+      rUpperFeetZ: -0.30671618693902813,
+      rLowerFeetX: 0.4357783967811823,
+      lUpperFeetX: -0.8709377901578459,
+      lUpperFeetY: 0.5648406066233365,
+      lUpperFeetZ: 0.6044568245125348,
+      lLowerFeetX: 0.8715567935623646
+    }
+
+    var pose8 = {
+      headX: 0.3,
+      headY: 0.01021355617455888,
+      headZ: -0.4036722389695807,
+      bodyX: 0.0364238410596025,
+      bodyY: 0.04503249767873707,
+      rUpperArmX: -1.4846796657381618,
+      rUpperArmZ: 0.035437944908697006,
+      rLowerArmX: -1.2192510058805324,
+      rLowerArmZ: -0.5,
+      lUpperArmX: -1.350974930362117,
+      lUpperArmZ: 0.035437944908697006,
+      lLowerArmX: 0.1,
+      lLowerArmZ: 0.1,
+      rUpperFeetX: -0.36583101207056634,
+      rUpperFeetY: -0.5642216032188176,
+      rUpperFeetZ: -0.30671618693902813,
+      rLowerFeetX: 0.38857142857142857,
+      lUpperFeetX: -0.8709377901578459,
+      lUpperFeetY: 0.005714285714285783,
+      lUpperFeetZ: 1,
+      lLowerFeetX: 1.3485714285714285
+    }
+
+    var pose9 = {
+      "headX": 0.3,
+      "headY": 0.01021355617455888,
+      "headZ": 0.2750957854406131,
+      "bodyX": 0.0364238410596025,
+      "bodyY": 0.04503249767873707,
+      "rUpperArmX": -1.4846796657381618,
+      "rUpperArmZ": 0.035437944908697006,
+      "rLowerArmX": 0.1,
+      "rLowerArmZ": 0.1,
+      "lUpperArmX": -1.350974930362117,
+      "lUpperArmZ": 0.035437944908697006,
+      "lLowerArmX": 1.8234285714285716,
+      "lLowerArmZ": -0.5,
+      "rUpperFeetX": -1.6196861191528265,
+      "rUpperFeetY": 0.03367362486667691,
+      "rUpperFeetZ": -1,
+      "rLowerFeetX": 1.2482096602163644,
+      "lUpperFeetX": -0.8709377901578459,
+      "lUpperFeetY": 0.5648406066233365,
+      "lUpperFeetZ": 0.6044568245125348,
+      "lLowerFeetX": 0.8715567935623646
+    }
+
+    var T = 7.5;
+    var keys = [
+      [0, pose1],
+      [0.0225, pose2],
+      [0.093, pose4],
+      [0.1375, pose3],
+      [0.2, pose1],
+      [0.2425, pose5],
+      [0.335, pose6],
+      [0.3675, pose5],
+      [0.45, pose6],
+      [0.4825, pose7],
+      [0.5, pose8],
+      [0.6275, pose7],
+      [0.64, pose9],
+      [0.7625, pose5],
+      [0.815, pose6],
+      [0.88, pose5],
+      [1, pose1]
+    ];
+
+    var clock = new THREE.Clock();
+    var ts = clock.getElapsedTime();
+    var intKey = [];
+    var camera, scene, renderer, light, controls;
+    var gcontrol, body;
+    var angle = 0;
+    var soundTrack;
+    var isPaused = false;
+    var isDimming = false, soundVal = 1.0, sign = 1.0;
+
+    clock.stop();
+
+    $('#play').click(function () {
+
+      isPaused = !isPaused;
+      if (isPaused) {
+        clock.start();
+        $('#play').text('Pause')
+        soundTrack.play();
+      } else {
+        clock.stop();
+        $('#play').text('Play')
+        soundTrack.pause();
+      }
+
+    });
+
+    function toggle() {
+
+      isDimming = !isDimming;
+      sign = isDimming ? -1 : 1;
+
+    }
+
+    init();
+    animate();
+
+    function init() {
+      soundTrack = document.getElementById('soundtrack');
+      soundTrack.pause();
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+      camera.position.z = 500;
+
+      light = new THREE.PointLight(0xffffff);
+      light.position.set(100, 300, 200);
+      scene.add(light);
+
+      // var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+      // scene.add(gridXZ);
+      // gridXZ.position.y = -50
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x888888);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      document.body.appendChild(renderer.domElement);
+
+      var amblight = new THREE.AmbientLight(0x444444); // soft white light
+      scene.add(amblight);
+      //////////////////////////////////////////////////////////////////////
+      //characters
+
+      var floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide }));
+      floor.rotation.x = - Math.PI / 2;
+      floor.position.y = -50;
+      scene.add(floor);
+
+      let loader = new THREE.TextureLoader();
+      loader.crossOrigin = '';
+      texture = loader.load("map/water.jpg");
+      texture.wrapS = THREE.RepeatWrapping;
+
+      body = new THREE.Object3D();
+      scene.add(body);
+
+      let torso = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 30), new THREE.MeshPhongMaterial({
+        map: texture
+      }));
+      torso.position.set(0, 75, 0);
+      body.add(torso);
+
+      let arm;
+      upperArm = new THREE.Object3D();
+      arm = new THREE.Mesh(new THREE.BoxGeometry(10, 40, 10), new THREE.MeshPhongMaterial({ color: 0x42ffff }));
+      upperArm.add(arm);
+      arm.position.set(-5, -20, 0);
+      body.add(upperArm);
+      upperArm.position.set(-25, 100, 0);
+
+      lowerArm = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 60, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+      lowerArm.add(arm);
+      arm.position.set(-5, -30, 0);
+      lowerArm.position.set(0, -40, 0);
+      upperArm.add(lowerArm);
+
+      upperArm2 = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 40, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0x42ffff }));
+      upperArm2.add(arm);
+      upperArm2.rotation.y = Math.PI
+      arm.position.set(-5, -20, 0);
+      body.add(upperArm2);
+      upperArm2.position.set(25, 100, 0);
+
+      lowerArm2 = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 60, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0x2a4ee0 }));
+      lowerArm2.add(arm);
+      arm.position.set(-5, -30, 0);
+      lowerArm2.position.set(0, -40, 0);
+      upperArm2.add(lowerArm2);
+
+      upperFeet = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 40, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0x42ffff }));
+      upperFeet.add(arm);
+      arm.position.set(-5, -20, 0);
+      body.add(upperFeet);
+      upperFeet.position.set(-10, 50, 0);
+
+      lowerFeet = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 60, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0x2a4ee0 }));
+      lowerFeet.add(arm);
+      arm.position.set(-5, -30, 0);
+      lowerFeet.position.set(0, -40, 0);
+      upperFeet.add(lowerFeet);
+
+      upperFeet2 = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 40, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0x42ffff }));
+      upperFeet2.add(arm);
+      arm.position.set(-5, -20, 0);
+      body.add(upperFeet2);
+      upperFeet2.position.set(20, 50, 0);
+
+      lowerFeet2 = new THREE.Object3D();
+      boxGeometry = new THREE.BoxGeometry(10, 60, 10);
+      arm = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+      lowerFeet2.add(arm);
+      arm.position.set(-5, -30, 0);
+      lowerFeet2.position.set(0, -40, 0);
+      upperFeet2.add(lowerFeet2);
+
+      head = new THREE.Object3D();
+      hd = new THREE.Mesh(new THREE.BoxGeometry(20, 30, 20), new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+      head.add(hd);
+      hd.position.set(0, 15, 0)
+      body.add(head);
+      head.position.set(0, 100, 0)
+      //////////////////////////////////////////////////////////////////////
+      //spotLight
+
+      spotLight = new THREE.SpotLight(0xffffff, 1.5);
+      spotLight.position.set(0, 150, 0);
+      spotLight.angle = Math.PI / 3;
+      spotLight.penumbra = 0.8;
+      scene.add(spotLight);
+      spotLight.target = body;
+      //////////////////////////////////////////////////////////////////////
+      //gcontrol
+
+      gcontrol = {
+        headX: 0.1,
+        headY: 0.1,
+        headZ: 0.0,
+        bodyX: 0.1,
+        bodyY: 0.1,
+        rUpperArmX: 0.1,
+        rUpperArmZ: 0.1,
+        rLowerArmX: 0.1,
+        rLowerArmZ: 0.1,
+        lUpperArmX: 0.1,
+        lUpperArmZ: 0.1,
+        lLowerArmX: 0.1,
+        lLowerArmZ: 0.1,
+        rUpperFeetX: 0.1,
+        rUpperFeetY: 0.1,
+        rUpperFeetZ: 0.1,
+        rLowerFeetX: 0.1,
+        lUpperFeetX: 0.1,
+        lUpperFeetY: 0.1,
+        lUpperFeetZ: 0.1,
+        lLowerFeetX: 0.1,
+      };
+
+      // var gui = new dat.GUI({
+      //         load: loadJSON(),
+      //   //preset: "run"
+      // });
+      // gui.domElement.id = 'gui';
+      // gui.remember(gcontrol);
+      // gui.add(gcontrol, 'headX', -0.3, 0.3);
+      // gui.add(gcontrol, 'headY', -1.0, 1.0);
+      // gui.add(gcontrol, 'headZ', -1.0, 1.0);
+      // gui.add(gcontrol, 'bodyX', -1.5, 1.5);
+      // gui.add(gcontrol, 'bodyY', -1.5, 1.5);
+      // gui.add(gcontrol, 'rUpperArmX', -3, 1.5);
+      // gui.add(gcontrol, 'rUpperArmZ', -2.5, 1.5);
+      // gui.add(gcontrol, 'rLowerArmX', -3, 0.1);
+      // gui.add(gcontrol, 'rLowerArmZ', -0.5, 3.1);
+      // gui.add(gcontrol, 'lUpperArmX', -3, 1.5);
+      // gui.add(gcontrol, 'lUpperArmZ', -2.5, 1.5);
+      // gui.add(gcontrol, 'lLowerArmX', 0.1, 3);
+      // gui.add(gcontrol, 'lLowerArmZ', -0.5, 3.1);
+      // gui.add(gcontrol, 'rUpperFeetX', -2, 1);
+      // gui.add(gcontrol, 'rUpperFeetY', -1, 1);
+      // gui.add(gcontrol, 'rUpperFeetZ', -1, 1);
+      // gui.add(gcontrol, 'rLowerFeetX', 0, 2);
+      // gui.add(gcontrol, 'lUpperFeetX', -2, 1);
+      // gui.add(gcontrol, 'lUpperFeetY', -1, 1);
+      // gui.add(gcontrol, 'lUpperFeetZ', -1, 1);
+      // gui.add(gcontrol, 'lLowerFeetX', 0, 2);
+
+
+    }
+
+    function loadJSON() {
+      return {
+        "remembered": {
+          "Default": {
+            "0": {
+              "headX": 0.3,
+              "headY": -0.0028789161727349466,
+              "bodyX": 0.0364238410596025,
+              "bodyY": 0.06071126164267571,
+              "rUpperArmX": -0.07366638441998319,
+              "rUpperArmZ": 0.01447925486875512,
+              "rLowerArmX": -0.5,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": 0.1,
+              "lUpperArmZ": -0.07222692633361572,
+              "lLowerArmX": 0.1,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": 0.1,
+              "rUpperFeetY": 0.1,
+              "rUpperFeetZ": 0.1,
+              "rLowerFeetX": 0.1,
+              "lUpperFeetX": 0.1,
+              "lUpperFeetY": 0.1,
+              "lUpperFeetZ": 0.1,
+              "lLowerFeetX": 0.1
+            }
+          },
+          "pose1": {
+            "0": {
+              "headX": 0.23324301439458078,
+              "headY": 0.6257408975444538,
+              "bodyX": 0.0364238410596025,
+              "bodyY": -0.4920406435224385,
+              "rUpperArmX": -1.0003386960203218,
+              "rUpperArmZ": -0.41905165114309906,
+              "rLowerArmX": -0.5071972904318374,
+              "rLowerArmZ": 1.1404741744284506,
+              "lUpperArmX": -0.8540220152413207,
+              "lUpperArmZ": 0.3179508890770535,
+              "lLowerArmX": 0.1,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": -0.1791701947502118,
+              "rUpperFeetY": 0.1,
+              "rUpperFeetZ": -0.43640982218458935,
+              "rLowerFeetX": 0.30347163420829804,
+              "lUpperFeetX": 0.1,
+              "lUpperFeetY": 0.7991532599491955,
+              "lUpperFeetZ": 0.300592718035563,
+              "lLowerFeetX": 0.1
+            }
+          },
+          "pose2": {
+            "0": {
+              "headX": 0.3,
+              "headY": -0.4489686098654708,
+              "bodyX": -0.07589403973509934,
+              "bodyY": 0.3941704035874438,
+              "rUpperArmX": -0.7786547085201794,
+              "rUpperArmZ": 0.11739910313901358,
+              "rLowerArmX": -0.5,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": -1.0231660231660231,
+              "lUpperArmZ": 0.025954525954525742,
+              "lLowerArmX": 0.21943371943371942,
+              "lLowerArmZ": 0.9236808236808236,
+              "rUpperFeetX": -0.4761904761904763,
+              "rUpperFeetY": -1,
+              "rUpperFeetZ": -0.2861432861432861,
+              "rLowerFeetX": 0.27456027456027454,
+              "lUpperFeetX": -0.35263835263835275,
+              "lUpperFeetY": 0.07078507078507079,
+              "lUpperFeetZ": 0.29043329043329047,
+              "lLowerFeetX": 0.7687687687687688
+            }
+          },
+          "pose3": {
+            "0": {
+              "headX": 0.3,
+              "headY": -0.055502085338466456,
+              "bodyX": 0.05717761557177603,
+              "bodyY": 0.03994225216554392,
+              "rUpperArmX": -0.9672762271414821,
+              "rUpperArmZ": -1.432306705165223,
+              "rLowerArmX": -1.6140519730510108,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": -1.1520692974013473,
+              "lUpperArmZ": -1.514436958614052,
+              "lLowerArmX": 1.7076997112608276,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": -0.5832531280076996,
+              "rUpperFeetY": -0.8768046198267565,
+              "rUpperFeetZ": -0.589348732755855,
+              "rLowerFeetX": 0.49278152069297404,
+              "lUpperFeetX": -0.3368623676612128,
+              "lUpperFeetY": 1,
+              "lUpperFeetZ": 0.3962143086300931,
+              "lLowerFeetX": 0.3695861405197305
+            }
+          },
+          "pose4": {
+            "0": {
+              "headX": 0.3,
+              "headY": 0.5424009640006024,
+              "bodyX": 0.05717761557177603,
+              "bodyY": 0.03994225216554392,
+              "rUpperArmX": -1.0912788070492545,
+              "rUpperArmZ": 0.16064166290103943,
+              "rLowerArmX": -1.4093990058743786,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": -1.481699051061907,
+              "lUpperArmZ": 0.16064166290103943,
+              "lLowerArmX": 1.7076997112608276,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": 0.16900135562584717,
+              "rUpperFeetY": 0.8508811568007231,
+              "rUpperFeetZ": -0.19023949389968364,
+              "rLowerFeetX": 0.4048802530501582,
+              "lUpperFeetX": -0.29371893357433354,
+              "lUpperFeetY": -1,
+              "lUpperFeetZ": -0.1323994577496611,
+              "lLowerFeetX": 0.3695861405197305
+            }
+          },
+          "pose5": {
+            "0": {
+              "headX": 0.3,
+              "headY": 0.01021355617455888,
+              "headZ": -0.009594552770040288,
+              "bodyX": 0.0364238410596025,
+              "bodyY": 0.04503249767873707,
+              "rUpperArmX": -1.4846796657381618,
+              "rUpperArmZ": 0.035437944908697006,
+              "rLowerArmX": 0.1,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": -1.350974930362117,
+              "lUpperArmZ": 0.035437944908697006,
+              "lLowerArmX": 0.1,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": -0.36583101207056634,
+              "rUpperFeetY": -0.5642216032188176,
+              "rUpperFeetZ": -0.30671618693902813,
+              "rLowerFeetX": 0.4357783967811823,
+              "lUpperFeetX": -0.8709377901578459,
+              "lUpperFeetY": 0.5648406066233365,
+              "lUpperFeetZ": 0.6044568245125348,
+              "lLowerFeetX": 0.8715567935623646
+            }
+          },
+          "pose6": {
+            "0": {
+              "headX": 0.3,
+              "headY": 0.01021355617455888,
+              "headZ": -0.4036722389695807,
+              "bodyX": 0.0364238410596025,
+              "bodyY": 0.04503249767873707,
+              "rUpperArmX": -1.4846796657381618,
+              "rUpperArmZ": 0.035437944908697006,
+              "rLowerArmX": -1.2192510058805324,
+              "rLowerArmZ": -0.5,
+              "lUpperArmX": -1.350974930362117,
+              "lUpperArmZ": 0.035437944908697006,
+              "lLowerArmX": 0.1,
+              "lLowerArmZ": 0.1,
+              "rUpperFeetX": -0.36583101207056634,
+              "rUpperFeetY": -0.5642216032188176,
+              "rUpperFeetZ": -0.30671618693902813,
+              "rLowerFeetX": 0.38857142857142857,
+              "lUpperFeetX": -0.8709377901578459,
+              "lUpperFeetY": 0.005714285714285783,
+              "lUpperFeetZ": 1,
+              "lLowerFeetX": 1.3485714285714285
+            }
+          },
+          "pose7": {
+            "0": {
+              "headX": 0.3,
+              "headY": 0.01021355617455888,
+              "headZ": 0.2750957854406131,
+              "bodyX": 0.0364238410596025,
+              "bodyY": 0.04503249767873707,
+              "rUpperArmX": -1.4846796657381618,
+              "rUpperArmZ": 0.035437944908697006,
+              "rLowerArmX": 0.1,
+              "rLowerArmZ": 0.1,
+              "lUpperArmX": -1.350974930362117,
+              "lUpperArmZ": 0.035437944908697006,
+              "lLowerArmX": 1.8234285714285716,
+              "lLowerArmZ": -0.5,
+              "rUpperFeetX": -1.6196861191528265,
+              "rUpperFeetY": 0.03367362486667691,
+              "rUpperFeetZ": -1,
+              "rLowerFeetX": 1.2482096602163644,
+              "lUpperFeetX": -0.8709377901578459,
+              "lUpperFeetY": 0.5648406066233365,
+              "lUpperFeetZ": 0.6044568245125348,
+              "lLowerFeetX": 0.8715567935623646
+            }
+          }
+        },
+        "preset": "pose6",
+        "closed": false,
+        "folders": {}
+      }
+    }
+
+    function keyframe(t) {
+      var s = ((t - ts) % T) / T;
+
+      for (var i = 1; i < keys.length; i++) {
+        if (keys[i][0] > s) break;
+      }
+
+      var ii = i - 1;
+      var a = (s - keys[ii][0]) / (keys[ii + 1][0] - keys[ii][0]);
+      headX = keys[ii][1].headX * (1 - a) + keys[ii + 1][1].headX * a;
+      headY = keys[ii][1].headY * (1 - a) + keys[ii + 1][1].headY * a;
+      headZ = keys[ii][1].headZ * (1 - a) + keys[ii + 1][1].headZ * a;
+      bodyX = keys[ii][1].bodyX * (1 - a) + keys[ii + 1][1].bodyX * a;
+      bodyY = keys[ii][1].bodyY * (1 - a) + keys[ii + 1][1].bodyY * a;
+      rUpperArmX = keys[ii][1].rUpperArmX * (1 - a) + keys[ii + 1][1].rUpperArmX * a;
+      rUpperArmZ = keys[ii][1].rUpperArmZ * (1 - a) + keys[ii + 1][1].rUpperArmZ * a;
+      rLowerArmX = keys[ii][1].rLowerArmX * (1 - a) + keys[ii + 1][1].rLowerArmX * a;
+      rLowerArmZ = keys[ii][1].rLowerArmZ * (1 - a) + keys[ii + 1][1].rLowerArmZ * a;
+      lUpperArmX = keys[ii][1].lUpperArmX * (1 - a) + keys[ii + 1][1].lUpperArmX * a;
+      lUpperArmZ = keys[ii][1].lUpperArmZ * (1 - a) + keys[ii + 1][1].lUpperArmZ * a;
+      lLowerArmX = keys[ii][1].lLowerArmX * (1 - a) + keys[ii + 1][1].lLowerArmX * a;
+      lLowerArmZ = keys[ii][1].lLowerArmZ * (1 - a) + keys[ii + 1][1].lLowerArmZ * a;
+      rUpperFeetX = keys[ii][1].rUpperFeetX * (1 - a) + keys[ii + 1][1].rUpperFeetX * a;
+      rUpperFeetY = keys[ii][1].rUpperFeetY * (1 - a) + keys[ii + 1][1].rUpperFeetY * a;
+      rUpperFeetZ = keys[ii][1].rUpperFeetZ * (1 - a) + keys[ii + 1][1].rUpperFeetZ * a;
+      rLowerFeetX = keys[ii][1].rLowerFeetX * (1 - a) + keys[ii + 1][1].rLowerFeetX * a;
+      lUpperFeetX = keys[ii][1].lUpperFeetX * (1 - a) + keys[ii + 1][1].lUpperFeetX * a;
+      lUpperFeetY = keys[ii][1].lUpperFeetY * (1 - a) + keys[ii + 1][1].lUpperFeetY * a;
+      lUpperFeetZ = keys[ii][1].lUpperFeetZ * (1 - a) + keys[ii + 1][1].lUpperFeetZ * a;
+      lLowerFeetX = keys[ii][1].lLowerFeetX * (1 - a) + keys[ii + 1][1].lLowerFeetX * a;
+
+      intKey = [headX, headY, headZ, bodyX, bodyY, rUpperArmX, rUpperArmZ, rLowerArmX, rLowerArmZ, lUpperArmX, lUpperArmZ, lLowerArmX, lLowerArmZ, rUpperFeetX, rUpperFeetY, rUpperFeetZ, rLowerFeetX, lUpperFeetX, lUpperFeetY, lUpperFeetZ, lLowerFeetX]
+
+    }
+
+    function animate() {
+
+      if (isPaused) {
+
+        soundVal += sign * 0.01;
+        soundVal = THREE.Math.clamp(soundVal, 0, 1);
+        soundtrack.volume = soundVal;
+
+        keyframe(clock.getElapsedTime());
+
+        head.rotation.x = intKey[0];
+        head.rotation.y = intKey[1];
+        head.rotation.z = intKey[2];
+        body.rotation.z = intKey[3];
+        body.rotation.y = intKey[4];
+        upperArm.rotation.x = intKey[5];
+        upperArm.rotation.z = intKey[6];
+        lowerArm.rotation.x = intKey[7];
+        lowerArm.rotation.z = intKey[8];
+        upperArm2.rotation.x = intKey[9];
+        upperArm2.rotation.z = intKey[10];
+        lowerArm2.rotation.x = intKey[11];
+        lowerArm2.rotation.z = intKey[12];
+        upperFeet.rotation.x = intKey[13];
+        upperFeet.rotation.y = intKey[14];
+        upperFeet.rotation.z = intKey[15];
+        lowerFeet.rotation.x = intKey[16];
+        upperFeet2.rotation.x = intKey[17];
+        upperFeet2.rotation.y = intKey[18];
+        upperFeet2.rotation.z = intKey[19];
+        lowerFeet2.rotation.x = intKey[20];
+
+      }
+
+
+      // head.rotation.x = gcontrol.headX;
+
+      // head.rotation.y = gcontrol.headY;
+      // head.rotation.z = gcontrol.headZ;
+      // body.rotation.z = gcontrol.bodyX;
+      // body.rotation.y = gcontrol.bodyY;
+
+      // upperArm.rotation.x = gcontrol.rUpperArmX;
+      // upperArm.rotation.z = gcontrol.rUpperArmZ;
+      // lowerArm.rotation.x = gcontrol.rLowerArmX;
+      // lowerArm.rotation.z = gcontrol.rLowerArmZ;
+      // upperArm2.rotation.x = gcontrol.lUpperArmX;
+      // upperArm2.rotation.z = gcontrol.lUpperArmZ;
+      // lowerArm2.rotation.x = gcontrol.lLowerArmX;
+      // lowerArm2.rotation.z = gcontrol.lLowerArmZ;
+      // upperFeet.rotation.x = gcontrol.rUpperFeetX;
+      // upperFeet.rotation.y = gcontrol.rUpperFeetY;
+      // upperFeet.rotation.z = gcontrol.rUpperFeetZ;
+      // lowerFeet.rotation.x = gcontrol.rLowerFeetX;
+      // upperFeet2.rotation.x = gcontrol.lUpperFeetX;
+      // upperFeet2.rotation.y = gcontrol.lUpperFeetY;
+      // upperFeet2.rotation.z = gcontrol.lUpperFeetZ;
+      // lowerFeet2.rotation.x = gcontrol.lLowerFeetX;
+
+
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+
+
+
+  </script>
+</body>
+
+</html>

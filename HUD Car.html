@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+
+#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+</style>
+</head>
+
+<body> 
+	<div id="info"> Dynamic Drive
+  <br>
+  <br>
+  <button id="camera" style="width:30%">Change camera</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+
+
+</script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://rawgit.com/jyunming-chen/tutsplus/master/js/text2D.js"></script>
+
+<script>
+var scene, renderer, camera1, camera2;
+var controls;
+var sceneHUD, cameraHUD, sceneHUD1, cameraHUD1, cameraHUD2;
+var mesh, angle = 0,
+  car, car2, wheel = [],
+  change = true;
+var keyboard = new KeyboardState();
+var clock, text;
+var pos = new THREE.Vector3();
+var speed, angle, vel;
+(function() {
+  Math.clamp = function(val, min, max) {
+    return Math.min(Math.max(val, min), max);
+  }
+})();
+init();
+animate();
+
+function initHUD() {
+  // sceneHUD: a simple line boundary
+  sceneHUD1 = new THREE.Scene();
+  cameraHUD1 = new THREE.OrthographicCamera(-10.5, 10.5, 10.5, -10.5, -50, 50);
+  cameraHUD1.position.z = 30; // for border
+
+  cameraHUD2 = new THREE.OrthographicCamera(-300, 300, 300, -300, 1, 500);
+  cameraHUD2.position.set(0, 450, 0)
+  cameraHUD2.up.set(0, 0, -1) // for top view
+  cameraHUD2.lookAt(new THREE.Vector3())
+
+  var lineGeometry = new THREE.Geometry();
+  lineGeometry.vertices.push(new THREE.Vector3(-10, -10, 0),
+    new THREE.Vector3(10, -10, 0),
+    new THREE.Vector3(10, 10, 0),
+    new THREE.Vector3(-10, 10, 0),
+    new THREE.Vector3(-10, -10, 0));
+  var line = new THREE.Line(lineGeometry,
+    new THREE.LineBasicMaterial({
+      color: 0xffffff
+    }));
+  sceneHUD.add(line);
+
+}
+
+
+
+$("#camera").click(function() {
+  change = !change;
+});
+
+function init() {
+  clock = new THREE.Clock();
+  scene = new THREE.Scene();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+  camera1 = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1500);
+  camera1.position.set(0, 600, 500)
+  camera2 = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+
+  cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1000);
+  cameraHUD.position.z = 200;
+  controls = new THREE.OrbitControls(camera1, renderer.domElement);
+  controls.enableKeys = false;
+  let light1 = new THREE.PointLight(0xffffff);
+  light1.position.set(0, 200, 200);
+  scene.add(light1);
+  //mesh = new THREE.
+  ////////////////////////////////////////////////////////////////////
+  let loader = new THREE.TextureLoader();
+  loader.crossOrigin = '';
+  car = new THREE.Group();
+  scene.add(car);
+
+  var geometry = new THREE.Geometry();
+  geometry.vertices.push(new THREE.Vector3(30, 0, 0));
+  geometry.vertices.push(new THREE.Vector3(0, 10, 0));
+  geometry.vertices.push(new THREE.Vector3(0, 0, 10));
+  geometry.vertices.push(new THREE.Vector3(0, 0, -10));
+  var face;
+  face = new THREE.Face3(0, 1, 2);
+  geometry.faces.push(face);
+  face = new THREE.Face3(1, 3, 2);
+  geometry.faces.push(face);
+  face = new THREE.Face3(3, 1, 0);
+  geometry.faces.push(face);
+  face = new THREE.Face3(2, 3, 0);
+  geometry.faces.push(face);
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial({
+    color: 0xff0088
+  }));
+  mesh1 = mesh.clone();
+  car.add(mesh1)
+  mesh1.position.y = 5
+  mesh.position.set(-10, 0, 100);
+ // scene.add(mesh);
+  let treadTex = loader.load('https://i.imgur.com/21rKfjX.jpg?2');
+  treadTex.repeat.set(6, 1)
+  treadTex.wrapS = THREE.RepeatWrapping
+  let tireTex = loader.load('https://i.imgur.com/jPX4y1n.png?1');
+  wheel = [];
+  circle = [];
+  for (var i = 0; i < 4; i++) {
+    wheel[i] = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 2, 80, 2, true), new THREE.MeshPhongMaterial({
+      map: treadTex
+    }));
+    wheel[i].rotation.x = Math.PI / 2
+  }
+  for (var i = 0; i < 8; i++) {
+    circle[i] = new THREE.Mesh(new THREE.CircleGeometry(3, 80), new THREE.MeshPhongMaterial({
+      map: tireTex,
+      side: THREE.DoubleSide
+    }));
+    //circle[i].rotation.x = Math.PI / 2
+  }
+  wheel[0].position.set(0, 3, 5)
+  wheel[1].position.set(0, 3, -5)
+  wheel[2].position.set(15, 3, 5)
+  wheel[3].position.set(15, 3, -5)
+
+  circle[0].position.set(0, 3, 6)
+  circle[1].position.set(0, 3, 4)
+  circle[2].position.set(15, 3, -6)
+  circle[3].position.set(15, 3, -4)
+  circle[4].position.set(0, 3, -6)
+  circle[5].position.set(0, 3, -4)
+  circle[6].position.set(15, 3, 6)
+  circle[7].position.set(15, 3, 4)
+  for (var j = 0; j < 4; j++) {
+    car.add(wheel[j]);
+  }
+  for (var j = 0; j < 8; j++) {
+    car.add(circle[j]);
+  }
+	
+	car2 = car.clone();
+  car2.position.set(-80, 0, 200)
+  scene.add(car2)
+  car2.rotation.y = Math.PI / 2
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  //scene.add(gridXZ);
+  speed = 5.0;
+  angle = 0.0;
+
+  texture = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJhbiPWq5Mn3tf0XiLhxEj4VMFMTXP6bGMasajrG8LYIdiGyiC');
+  texture1 = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0fZ0ypu7afz4855DcEx1gkqJcMXuBux5VIfpAktW9Kd1c4uQcBg');
+  texture3 =  loader.load('https://thumb9.shutterstock.com/display_pic_with_logo/584806/584806,1279300438,5/stock-photo-seamless-gemstone-tiles-big-collection-57265753.jpg');
+  texture4 =  loader.load('https://st.depositphotos.com/2605379/3026/i/950/depositphotos_30265305-stock-photo-skyscraper-windows.jpg');
+
+  texture1.wrapS = texture1.wrapT = THREE.RepeatWrapping;
+
+  var grass = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshPhongMaterial({
+    map: texture1,
+    side: THREE.DoubleSide
+  }));
+  texture1.repeat.set(5, 5)
+  grass.position.set(0, -0.5, 0);
+  grass.rotation.x = -Math.PI / 2
+  scene.add(grass);
+
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  var house = [];
+  for (var i = 0; i < 5; i++) {
+    house[i] = new THREE.Mesh(new THREE.BoxGeometry(40, 40, 80), new THREE.MeshPhongMaterial({map : texture3}));
+    scene.add(house[i]);
+  }
+
+  house[0].position.set(-200, 20, 0);
+  house[1].position.set(-20, 20, -100);
+  house[2].position.set(-20, 20, 100);
+  house[3].position.set(150, 20, -100);
+  house[3].rotation.y = Math.PI / 2
+  house[4].position.set(150, 20, 150);
+  house[4].rotation.y = Math.PI / 2
+  var house2 = [];
+  for (var i = 0; i < 5; i++) {
+    house2[i] = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 80), new THREE.MeshPhongMaterial({map : texture4}));
+    house2[i].rotation.x = Math.PI / 2
+    scene.add(house2[i]);
+  }
+  house2[0].position.set(-200, 40, -60);
+  house2[1].position.set(-20, 40, -170);
+  house2[2].position.set(-200, 40, 60);
+  house2[3].position.set(200, 40, 50);
+  house2[4].position.set(200, 40, -200);
+  var road1 = new THREE.Mesh(new THREE.PlaneGeometry(80, 500), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  scene.add(road1)
+  road1.rotation.x = -Math.PI / 2;
+  road1.position.set(-100, -0.1, 0);
+
+  var road2 = new THREE.Mesh(new THREE.PlaneGeometry(50, 320), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  scene.add(road2)
+  road2.rotation.x = -Math.PI / 2;
+  road2.rotation.z = Math.PI / 2;
+  road2.position.set(90, -0.2, 0);
+
+  var road3 = new THREE.Mesh(new THREE.PlaneGeometry(50, 500), new THREE.MeshPhongMaterial({
+    map: texture,
+    transparent: true
+  }));
+  scene.add(road3)
+  road3.rotation.x = -Math.PI / 2;
+  road3.position.set(30, -0.1, 0);
+
+  var road4 = new THREE.Mesh(new THREE.PlaneGeometry(50, 200), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  scene.add(road4)
+  road4.rotation.x = -Math.PI / 2;
+  road4.rotation.z = Math.PI / 2;
+  road4.position.set(150, -0.2, 100);
+  var road5 = new THREE.Mesh(new THREE.PlaneGeometry(50, 320), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  scene.add(road5)
+  road5.rotation.x = -Math.PI / 2;
+  road5.rotation.z = Math.PI / 2;
+  road5.position.set(90, -0.2, 200);
+  var road6 = new THREE.Mesh(new THREE.PlaneGeometry(50, 200), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  scene.add(road6)
+  road6.rotation.x = -Math.PI / 2;
+  road6.rotation.z = Math.PI / 2;
+  road6.position.set(150, -0.2, -150);
+
+  window.addEventListener('resize', onWindowResize, false);
+  //////////////////////////////////////////////////////////
+  renderer.autoClear = false;
+  sceneHUD = new THREE.Scene();
+  var Text2D = THREE_Text.MeshText2D;
+  var SpriteText2D = THREE_Text.SpriteText2D;
+  var textAlign = THREE_Text.textAlign;
+  text = new SpriteText2D("0", {
+    align: textAlign.center,
+    //    font: '20px Arial',
+    font: '20px Times',
+    fillStyle: '#00ffff',
+    antialias: false
+  });
+  text.position.set(-100, 300, 0);
+
+  text.scale.set(1.5, 1.5, 1.5);
+  scene.add(text);
+  //text.lookAt(camera1)
+  whRatio = window.innerWidth / window.innerHeight;
+  halfH = 10;
+  halfW = whRatio * halfH;
+  texture2 = loader.load('https://thumbs.dreamstime.com/b/d按钮象右箭头银颜色-108629206.jpg');
+  aframe = new THREE.Group();
+
+  let fframe = new THREE.Mesh(new THREE.PlaneGeometry(2 * halfW, 2 * halfW / 10), new THREE.MeshBasicMaterial({
+    color: 0xffff34,
+    opacity: 0.0,
+    transparent: true,
+    depthTest: false, // always drawn
+    depthWrite: true
+  })); 
+  aframe.add(fframe);
+  var button = [];
+  for (var i = 0; i < 4; i++) {
+    button[i] = new THREE.Mesh(new THREE.CircleGeometry(halfW / 10, 30), new THREE.MeshBasicMaterial({
+      map: texture2,
+      depthTest: false // always drawn
+    }));
+    aframe.add(button[i])
+  }
+  sceneHUD.add(aframe)
+ 
+  aframe.position.set(0, -(halfH - halfW / 10), 0)
+  button[0].position.set(-halfW / 5, 0, 0)
+  button[0].rotation.z = Math.PI
+  button[1].position.set(halfW / 5, 0, 0)
+  // button[2].position.set(halfW / 3.5, halfW / 10, 0)
+  button[2].rotation.z = -Math.PI / 2
+  button[3].position.set(0, halfW / 5, 0)
+  button[3].rotation.z = Math.PI / 2
+  document.addEventListener('mousedown', hudButtonPick, false);
+  initHUD();
+}
+
+function onWindowResize() {
+  // renderer resize
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  whRatio = window.innerWidth / window.innerHeight;
+
+  // perspective camera resize
+  camera.aspect = whRatio;
+  camera.updateProjectionMatrix();
+
+  // orthographic camera resize
+  whRatio = window.innerWidth / window.innerHeight;
+  halfH = 10;
+  halfW = whRatio * halfH;
+ // halfH = 20;
+ // halfW = halfH * whRatio
+
+  cameraHUD.left = -halfW;
+  cameraHUD.right = halfW;
+  cameraHUD.top = halfH;
+  cameraHUD.bottom = -halfH;
+  cameraHUD.updateProjectionMatrix();
+
+  // HUD geometry relatively resized & placed 
+  aframe.position.set(0, -(halfH - halfW / 10), 0)
+  aframe.children[0].geometry = new THREE.PlaneGeometry(2 * halfW, 2 * halfW / 10);
+  aframe.children[1].geometry = new THREE.CircleGeometry(halfW / 10, 30)
+  aframe.children[2].geometry = new THREE.CircleGeometry(halfW / 10, 30)
+  aframe.children[3].geometry = new THREE.CircleGeometry(halfW / 10, 30)
+  aframe.children[4].geometry = new THREE.CircleGeometry(halfW / 10, 30)  
+}
+
+function update(dt) {
+
+  keyboard.update();
+  if (keyboard.pressed("left"))
+    angle += 0.01;
+  if (keyboard.pressed("right"))
+    angle -= 0.01;
+  if (keyboard.pressed("up"))
+    speed += 0.5;
+  if (keyboard.pressed("down"))
+    speed -= 0.5;
+  if (keyboard.pressed("space"))
+    speed = 0.1
+  if (keyboard.pressed("home"))
+    speed = 0.1
+  speed = Math.clamp(speed, 0.1, 20.0);
+  vel = new THREE.Vector3(speed, 0, 0);
+
+  vel.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+  pos.add(vel.clone().multiplyScalar(dt));
+
+}
+
+function hudButtonPick(event) {
+  // convert to NDC
+  let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
+  let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // convert to HUD scene coordinate
+  whRatio = window.innerWidth / window.innerHeight;
+  halfH = 10;
+  halfW = whRatio * halfH;
+  //let halfW = cameraHUD.right;
+  //let halfH = cameraHUD.top;
+  let xx = ndcX * halfW;
+  let yy = ndcY * halfH;
+
+  // button location: 
+  let leftButtonCenter = new THREE.Vector2(-halfW / 5, -(halfH - halfW / 10));
+  let rightbuttonCenter = new THREE.Vector2(halfW / 5, -(halfH - halfW / 10));
+  let downButtonCenter = new THREE.Vector2(0, -(halfH - halfW / 10));
+  let upbuttonCenter = new THREE.Vector2(0, -(halfH - halfW / 10) + halfW / 5);
+  let mouse = new THREE.Vector2(xx, yy);
+  if (mouse.distanceTo(leftButtonCenter) < halfW / 10)
+    angle += 0.1;
+  if (mouse.distanceTo(rightbuttonCenter) < halfW / 10)
+    angle -= 0.1;
+  if (mouse.distanceTo(downButtonCenter) < halfW / 10)
+    speed -= 0.5;
+  if (mouse.distanceTo(upbuttonCenter) < halfW / 10)
+    speed += 0.5;
+
+}
+
+function animate() {
+  //angle += 0.01
+  text.text = "speed = " + Math.round(speed * 100) / 100
+  let camera;
+  camera2.position.copy(car.localToWorld(new THREE.Vector3(-50, 30, 0)));
+  camera2.lookAt(car.position);
+  controls.update();
+  if (change)
+    camera = camera1;
+  else
+    camera = camera2;
+
+  var dt = clock.getDelta();
+  update(dt);
+  for (var i = 0; i < 4; i++) {
+    wheel[i].rotation.y += 0.1
+  }
+  for (var i = 0; i < 8; i++) {
+    circle[i].rotation.z -= 0.1
+  }
+  // car updatev
+  car2.position.z -= 0.1
+  car.position.copy(pos);
+  car.rotation.y = angle;
+  renderer.clear(true);
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+  renderer.render(sceneHUD, cameraHUD);
+  render(camera);
+}
+
+function render(camera) {
+
+  var WW = window.innerWidth;
+  var HH = window.innerHeight;
+
+  renderer.setScissorTest(true);
+
+  renderer.setViewport(0, 0, WW, HH);
+  camera.aspect = WW / HH;
+  camera.updateProjectionMatrix();
+
+  renderer.setScissor(0, 0, WW, HH);
+  renderer.clear();
+  renderer.render(scene, camera);
+  renderer.render(sceneHUD, cameraHUD);
+
+  renderer.setViewport(WW * 2 / 3, HH * 2 / 3, WW / 3, HH / 3);
+  renderer.setScissor(WW * 2 / 3, HH * 2 / 3, WW / 3, HH / 3);
+  // no need to set aspect (since it is still ONE)
+  renderer.clear(); // important!
+  renderer.render(sceneHUD1, cameraHUD1); // border
+  renderer.render(scene, cameraHUD2); // topview
+  //renderer.render(scene, camera);
+  renderer.setScissorTest(false);
+}
+
+
+
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <style>
+
+    #info {
+      position: absolute;
+      top: 0px;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      color: #ff0001
+    }
+
+  </style>
+</head>
+
+<body>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+
+  <script>
+    var renderer, camera, controls, scene;
+    var angle = 0, wheelAngle = 0;
+    var train, wheels = [];
+    var gcontrols, orbitcontrols;
+    var turn = true, turn2 = false, straight = 0
+    init();
+    animate();
+
+    function init() {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x888888);
+      document.body.appendChild(renderer.domElement);
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+      camera.position.set(0, 100, 150);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      scene = new THREE.Scene();
+      //////////////////////////////////////////////////////////
+
+      let loader = new THREE.TextureLoader();
+      loader.crossOrigin = '';
+      trainFaceTexture = loader.load('https://i.imgur.com/4vjKiPV.jpg');
+
+      texture2 = loader.load('https://i.imgur.com/p4HtN0u.jpg');
+      texture3 = loader.load('https://i.imgur.com/YxdB1HD.jpg?1');
+      texture4 = loader.load('https://i.imgur.com/jFPqN7n.jpg?1');
+      texture5 = loader.load('https://i.imgur.com/rFEq5ja.jpg');
+
+      train = new THREE.Group();
+
+      let head = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 30), new THREE.MeshBasicMaterial({
+        map: texture5
+      }));
+      head.rotation.z = Math.PI / 2
+      head.position.set(5, 15, 0)
+
+      let trainBottom = new THREE.Mesh(new THREE.BoxGeometry(35, 10, 17), new THREE.MeshBasicMaterial({
+        map: texture4
+      }));
+      trainBottom.position.y = 5
+
+      let trainBody = new THREE.Mesh(new THREE.BoxGeometry(25, 20, 15), new THREE.MeshBasicMaterial({
+        map: texture4
+      }));
+      trainBody.position.set(-2, 15, 0)
+
+      let face = new THREE.Mesh(new THREE.CircleGeometry(8, 80), new THREE.MeshBasicMaterial({
+        map: trainFaceTexture,
+        side: THREE.DoubleSide
+      }));
+      face.rotation.y = Math.PI / 2
+      face.position.set(20.5, 15, 0)
+
+      train.add(face, trainBody, trainBottom, head)
+      scene.add(train)      
+
+      for(i = 0;i < 6;i ++){
+        wheels[i] = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 5, 80), new THREE.MeshBasicMaterial( {
+          map: texture3
+        }));
+        wheels[i].rotation.x = Math.PI / 2;
+        train.add(wheels[i]);
+      }
+      wheels[0].position.set(0, -3, 10);
+      wheels[1].position.set(-17, -2, 10);
+      wheels[2].position.set(15, -4, 10);
+      wheels[3].position.set(0, -3, -10);
+      wheels[4].position.set(-17, -2, -10);
+      wheels[5].position.set(15, -4, -10);
+
+
+      var railGeometry = new THREE.RingBufferGeometry(43, 85, 80, 2);
+      var uvs = railGeometry.attributes.uv.array;
+      var railTexture = loader.load('https://i.imgur.com/Rzl9nQw.jpg?1');
+      var phiSegments = railGeometry.parameters.phiSegments;  // 62
+      var thetaSegments = railGeometry.parameters.thetaSegments; // 1
+
+      for (var c = 0, j = 0; j <= phiSegments; j++) {
+        for (var i = 0; i <= thetaSegments; i++) {
+          uvs[c++] = i / thetaSegments * 5,
+            uvs[c++] = j / phiSegments;
+        }
+      }
+      railTexture.wrapS = THREE.RepeatWrapping
+
+      var railMaterial = new THREE.MeshBasicMaterial({
+        map: railTexture,
+        side: THREE.DoubleSide
+      });
+
+      var rail = new THREE.Mesh(railGeometry, railMaterial);
+      scene.add(rail);
+      rail.rotation.x = Math.PI / 2
+      
+      var floorTexture = loader.load('https://i.imgur.com/Bse9mWY.jpg');
+      var floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), 
+                  new THREE.MeshBasicMaterial({ 
+                      map: floorTexture, 
+                      side: THREE.DoubleSide 
+                  }));
+      floor.rotation.x = -Math.PI / 2
+      floor.position.y = -1
+      scene.add(floor)
+
+      gcontrols = new function () {
+        this.speed = 1.5;
+        this.turn = true;
+      }
+
+      var gui = new dat.GUI();
+      gui.domElement.id = 'gui';
+      var f1 = gui.addFolder("motion");
+      f1.add(gcontrols, 'speed', 0.1, 5);
+      f1.add(gcontrols, 'turn');
+
+    }
+
+    function animate() {
+      controls.update();
+      renderer.render(scene, camera);
+      if (gcontrols.turn) {
+        angle += gcontrols.speed * 0.01; // radia
+        train.position.set(straight + 60 * Math.cos(angle), 10, -60 * Math.sin(angle));
+        for(i = 0;i < 6; i ++){
+          wheels[i].rotation.y = wheelAngle;
+        }
+        wheelAngle -= gcontrols.speed * 0.1;
+      }
+      train.rotation.y = angle + Math.PI / 2;
+
+      requestAnimationFrame(animate);
+    }
+
+  </script>
+</body>
+
+</html>
