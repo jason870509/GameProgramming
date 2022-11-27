@@ -39,8 +39,8 @@
 	<p id='msg'></p>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
-<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="../js/build/three.min.js"></script>
+<script src="../js/controls/OrbitControls.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
 <script src='js/MD2Loader.js'></script>
@@ -142,7 +142,7 @@ class MD2Wrapper {
 		//  GROUND
 
 		//var gt = new THREE.TextureLoader().load( "grasslight-big.jpg" );
-		var gt = new THREE.TextureLoader().load( "https://i.imgur.com/p8CRm9W.jpg");
+		var gt = new THREE.TextureLoader().load( "./image/ground.jpg");
 		var gg = new THREE.PlaneBufferGeometry( 16000, 16000 );
 		var gm = new THREE.MeshPhongMaterial( { color: 0xffffff, map: gt } );
 

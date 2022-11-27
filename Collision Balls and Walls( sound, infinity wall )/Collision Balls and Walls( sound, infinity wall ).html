@@ -24,16 +24,16 @@
   <div id="info">hw2<br>
     <button id="play" style="width:20%">Play Sound</button>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
-  <script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+	<script src="../js/build/three.min.js"></script>
+	<script src="../js/controls/OrbitControls.js"></script>
   </script>
   <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
   <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
   <audio id="collisionSound" style="display:none">
-    <source src="sounds/collision3.mp3" type='audio/wav'>
+    <source src="./sounds/collision3.mp3" type='audio/mp3'>
   </audio>
   <audio id="soundTrack" autoplay loop style="display:none">
-    <source src="sounds/rock.mp3" type='audio/wav'>
+    <source src="./sounds/rock.mp3" type='audio/mp3'>
   </audio>
 
   <script>
@@ -359,7 +359,6 @@
 
 
     function init() {
-
       collisionSound = document.getElementById('collisionSound');
       soundTrack = document.getElementById('soundTrack');
 
